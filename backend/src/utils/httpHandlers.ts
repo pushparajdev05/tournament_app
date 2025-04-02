@@ -28,4 +28,8 @@ export const handleServiceResponse = (serviceResponse: ServiceResponse<unknown>,
 	return response.status(serviceResponse.statusCode).send(serviceResponse);
 };
 
+export function failed(message:string, statusCode:StatusCodes)
+{
+    return ServiceResponse.failure(message, null, statusCode);
+}
 

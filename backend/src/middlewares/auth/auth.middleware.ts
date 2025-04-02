@@ -1,5 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { failed, handleServiceResponse,} from "@/utils/httpHandlers";
+import { StatusCodes } from "http-status-codes";
+import { env } from "@/config/envConfig";
 
 declare global {
   namespace Express {
@@ -9,33 +12,33 @@ declare global {
   }
 }
 
-const SECRET = process.env.JWT_SECRET!; // Ensure your environment variable is set
+const SECRET = env.JWT_SECRET; // Ensure your environment variable is set
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction): void => {
-    const authHeader = req.headers.authorization;
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    const resObj = failed("Unauthorized: No token provided", StatusCodes.UNAUTHORIZED);
+    handleServiceResponse(resObj, res);
+    return;
+  }
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        res.status(401).json({ message: "Unauthorized: No token provided" });
-        return; 
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const decoded = jwt.verify(token, SECRET) as { id: string };
+
+    if (!decoded.id) {
+      const resObj = failed("Forbidden: Invalid token payload", StatusCodes.FORBIDDEN);
+      handleServiceResponse(resObj, res);
+      return; // Ensure function exits after sending response
     }
 
-    const token = authHeader.split(" ")[1];
+    req.user = { id: decoded.id }; //  Correctly attach user ID to request
 
-    try {
-        const decoded = jwt.verify(token, SECRET) as { id: string };
-
-        if (!decoded.id) {
-            res.status(403).json({ message: "Forbidden: Invalid token payload" });
-            return; // Ensure function exits after sending response
-        }
-
-        req.user = { id: decoded.id }; //  Correctly attach user ID to request
-
-        next(); //  Proceed to the next middleware
-    } catch (error) {
-        res.status(403).json({ message: "Forbidden: Invalid token" });
-        return; //  Ensure function exits
-    }
+    next(); //  Proceed to the next middleware
+  } catch (error) {
+    const resObj = failed("Forbidden: Invalid token", StatusCodes.FORBIDDEN);
+    handleServiceResponse(resObj, res);
+    return;
+  }
 };
-
-//import logger from "../config/logger";

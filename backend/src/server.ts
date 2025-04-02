@@ -8,6 +8,10 @@ import errorHandler from "./middlewares/error_handlers/error.middleware";
 import authRoutes from "./routes/auth.routes";
 import { env } from "./config/envConfig";
 
+const cookieParser = require("cookie-parser");
+const compression = require("compression");
+
+    
 const logger = pino({ name: "server start" });
 const app: Express = express();
 
@@ -18,6 +22,8 @@ app.set("trust proxy", true);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
+app.use(cookieParser());
+app.use(compression());
 app.use(helmet());
 app.use(rateLimiter);
 
